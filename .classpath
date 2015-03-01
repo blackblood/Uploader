@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
+	<classpathentry exported="true" kind="lib" path="lib/org.eclipse.jgit_3.7.0.201502260915-r.jar" sourcepath="C:/eclipse/eclipse/plugins/org.eclipse.jgit.source_3.7.0.201502260915-r.jar"/>
+	<classpathentry kind="lib" path="lib/slf4j.api_1.6.6.jar"/>
+	<classpathentry kind="lib" path="lib/org.eclipse.jsch.core_1.1.500.v20131112-1442.jar"/>
+	<classpathentry kind="lib" path="lib/com.jcraft.jsch_0.1.27.jar"/>
+	<classpathentry kind="lib" path="lib/zt-zip-1.7.jar"/>
+	<classpathentry kind="lib" path="lib/org.apache.commons.io.jar"/>
+	<classpathentry kind="lib" path="lib/javax.xml_1.3.4.v201005080400.jar"/>
+	<classpathentry kind="lib" path="lib/org.w3c.dom.events_3.0.0.draft20060413_v201105210656.jar"/>
+	<classpathentry kind="lib" path="lib/org.w3c.dom.smil_1.0.0.v200806040011.jar"/>
+	<classpathentry kind="var" path="JGIT_JARS"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
