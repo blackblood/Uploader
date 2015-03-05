@@ -1,13 +1,17 @@
 package upload_gen;
 
+import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -23,6 +27,21 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFCellStyle;
+import org.apache.poi.xssf.usermodel.XSSFColor;
+import org.apache.poi.xssf.usermodel.XSSFFont;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.diff.DiffEntry;
@@ -65,10 +84,9 @@ public class Launcher {
 		targetPath = config.get("targetPath");
 		masterBranch = config.get("masterBranch");
 		FileRepositoryBuilder builder = new FileRepositoryBuilder();
-		System.out.println(path + "/.git");
 		Repository repository = builder.setGitDir(new File(path + "/.git")).build();
 		Git git = new Git(repository);
-		boolean pullComplete = updateFromRemote(git,branchName,username,password);
+		boolean pullComplete = updateFromRemote(git,branchName,masterBranch,username,password);
 		if (!pullComplete) {
 			System.out.println("Couldn't pull from remote. Terminating...");
 			System.exit(1);
@@ -85,16 +103,34 @@ public class Launcher {
 		SimpleDateFormat timeFormat = new SimpleDateFormat("k-mm");
 		String dateText = dateFormat.format(new Date());
 		String timeText = timeFormat.format(new Date());
+		ArrayList<HashMap> dataList = new ArrayList();
+        HashMap<String,String> dataMap;
         for (DiffEntry entry : diff) {
+        	String newPath = entry.getNewPath();
+        	System.out.println("newPath = " + newPath);
+        	String subPath = newPath.substring(0,newPath.lastIndexOf("/")).replace("public", "insite");
+        	System.out.println("subPath = " + subPath);
+        	String fileName = entry.getNewPath().substring(entry.getNewPath().lastIndexOf("/") + 1);
+        	System.out.println("fileName = " + fileName);
+        	dataMap = new HashMap<String,String>();
+        	dataMap.put("path", subPath);
+        	dataMap.put("fileName", fileName);
+        	dataMap.put("url", "sgin.bms.bz/" + subPath.replace("insite/", "") + "/" +  fileName.replace(".bms", ""));
+        	dataList.add(dataMap);
         	String uploadPath = targetPath + "/Upload-" + dateText + "-Time-" + timeText + "/" + entry.getNewPath();
         	File file = new File(uploadPath);
-        	System.out.println("Creating: " + uploadPath);
+        	System.out.println("Creating: " + "/Upload-" + dateText + "-Time-" + timeText + "/" + entry.getNewPath());
             file.getParentFile().mkdirs();
             Files.copy(Paths.get(path + "/" + entry.getNewPath()), Paths.get(uploadPath));
         }
         System.out.println("Zipping...");
         ZipUtil.pack(new File(targetPath + "/Upload-" + dateText + "-Time-" + timeText), new File(targetPath + "/Upload-" + dateText + "-Time-" + timeText + ".zip"));
         System.out.println("done.");
+        System.out.println("Creating upload sheet...");
+        boolean uploadSheetCreated = createUploadSheet(targetPath,"/Upload-" + dateText + "-Time-" + timeText,dataList);
+        if (uploadSheetCreated) {
+        	System.out.println("Done.");
+        }
         repository.close();
 	}
 	
@@ -116,6 +152,61 @@ public class Launcher {
 		walk.dispose();
 		
 		return oldTreeParser;
+	}
+	
+	private static boolean createUploadSheet(String path,String sheetName,ArrayList<HashMap> data) {
+		try {
+			XSSFWorkbook wb = new XSSFWorkbook();
+			Sheet sheet = wb.createSheet("Upload");
+			XSSFRow row = (XSSFRow) sheet.createRow(0);
+			row.setHeight((short) 450);
+			XSSFCellStyle cellStyle = wb.createCellStyle();
+			cellStyle.setFillBackgroundColor(new XSSFColor(new Color(250,250,250)));
+			XSSFFont font = wb.createFont();
+			font.setBoldweight((short) 700);
+			cellStyle.setFont(font);
+			cellStyle.setFillPattern(CellStyle.ALIGN_FILL);
+			row.setRowStyle(cellStyle);
+			XSSFCell cell1 = (XSSFCell) row.createCell(0);
+			cell1.setCellValue("Event Name");
+			XSSFCell cell2 = (XSSFCell) row.createCell(1);
+			cell2.setCellValue("Folder Path");
+			XSSFCell cell3 = (XSSFCell) row.createCell(2);
+			cell3.setCellValue("Page Name");
+			XSSFCell cell4 = (XSSFCell) row.createCell(3);
+			cell4.setCellValue("Changes");
+			XSSFCell cell5 = (XSSFCell) row.createCell(4);
+			cell5.setCellValue("Priority");
+			XSSFCell cell6 = (XSSFCell) row.createCell(5);
+			cell6.setCellValue("Uploader Comment");
+			XSSFCell cell7 = (XSSFCell) row.createCell(6);
+			cell7.setCellValue("Testing Comments");
+			int rownum = 2;
+			Iterator<HashMap> iterator = data.iterator();
+			while(iterator.hasNext()) {
+				HashMap<String,String> map = iterator.next();
+				String[] fileData = new String[3];
+				fileData[0] = (String) map.get("path");
+				fileData[1] = (String) map.get("fileName");
+				fileData[2] = (String) map.get("url");
+				Row newRow = sheet.createRow(rownum);
+				for(int j = 1; j < 4; j++) {
+					Cell cell = newRow.createCell(j);
+					cell.setCellValue(fileData[j - 1]);
+				}
+				rownum++;
+			}
+			for(int i = 2; i < 5; i++){
+				sheet.autoSizeColumn(i);
+			}
+			sheet.setDefaultColumnWidth(40);
+			FileOutputStream out = new FileOutputStream(path+sheetName+".xlsx");
+			wb.write(out);
+			out.close();
+		} catch (IOException | NullPointerException e) {
+			e.printStackTrace();
+		}
+		return true;
 	}
 	
 	private static HashMap<String,String> readConfig() {
@@ -196,15 +287,15 @@ public class Launcher {
 		return true;
 	}
 	
-	private static boolean updateFromRemote(Git git, String branchName, String username, String password) {
+	private static boolean updateFromRemote(Git git, String branchName, String masterBranch, String username, String password) {
 		boolean pull1 = false, pull2 = false;
 		try {
 			CheckoutCommand checkout = git.checkout();
-			System.out.println("Pulling master into master ...");
-			checkout.setName("master").call();
+			System.out.println("Pulling " + masterBranch + " into " + masterBranch);
+			checkout.setName(masterBranch).call();
 			PullCommand pullCommand = git.pull(); PullResult pullResult = null;
 			CredentialsProvider credentialsProvider = new UsernamePasswordCredentialsProvider(username,password);
-			pullCommand.setRemoteBranchName("master");
+			pullCommand.setRemoteBranchName(masterBranch);
 			pullResult = pullCommand.setCredentialsProvider(credentialsProvider).call();
 			if (pullResult.isSuccessful()) { 
 				System.out.println("Done!");
@@ -212,7 +303,7 @@ public class Launcher {
 			}
 			checkout = git.checkout();
 			checkout.setName(branchName).call();
-			System.out.println("Pulling master into " + branchName + "...");
+			System.out.println("Pulling " + masterBranch + " into " + branchName + "...");
 			pullResult = pullCommand.setCredentialsProvider(credentialsProvider).call();
 			if (pullResult.isSuccessful()) { 
 				System.out.println("Done!");

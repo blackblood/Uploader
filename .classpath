@@ -11,6 +11,12 @@
 	<classpathentry kind="lib" path="lib/javax.xml_1.3.4.v201005080400.jar"/>
 	<classpathentry kind="lib" path="lib/org.w3c.dom.events_3.0.0.draft20060413_v201105210656.jar"/>
 	<classpathentry kind="lib" path="lib/org.w3c.dom.smil_1.0.0.v200806040011.jar"/>
+	<classpathentry kind="lib" path="lib/commons-codec-1.9.jar"/>
+	<classpathentry kind="lib" path="lib/poi-3.11-beta2.jar"/>
+	<classpathentry kind="lib" path="lib/poi-ooxml-3.11-beta2.jar"/>
+	<classpathentry kind="lib" path="lib/stax-api-1.0.1.jar"/>
+	<classpathentry kind="lib" path="lib/xmlbeans-2.6.0.jar"/>
+	<classpathentry kind="lib" path="lib/ooxml-schemas-1.1.jar"/>
 	<classpathentry kind="var" path="JGIT_JARS"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
